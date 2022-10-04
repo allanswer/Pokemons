@@ -1,21 +1,12 @@
 package sideproject.tseen.pokemonassignment
 
+import android.graphics.Bitmap
 import android.os.Bundle
-import android.util.Log
+import android.util.LruCache
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,28 +17,24 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 import sideproject.tseen.pokemonassignment.api.PokemonService
-import sideproject.tseen.pokemonassignment.model.PokemonInfo
-import sideproject.tseen.pokemonassignment.model.response.PokemonList
-import sideproject.tseen.pokemonassignment.model.response.PokemonTypeResponse
-import sideproject.tseen.pokemonassignment.model.type.type
-import sideproject.tseen.pokemonassignment.persistence.PokemonDatabase
 import sideproject.tseen.pokemonassignment.ui.PokemonDetails
-import sideproject.tseen.pokemonassignment.ui.PokemonHome
+import sideproject.tseen.pokemonassignment.ui.composable.PokemonHome
 import sideproject.tseen.pokemonassignment.ui.theme.PokemonAssignmentTheme
 import sideproject.tseen.pokemonassignment.viewmodel.PokemonViewModel
-import kotlin.math.log
 
 class MainActivity : ComponentActivity() {
     private val TAG = "MainActivity"
     private lateinit var mPokemonViewModel: PokemonViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val pokemonService = PokemonService.getInstance()
         mPokemonViewModel = ViewModelProvider(this).get(PokemonViewModel::class.java)
         GlobalScope.launch(Dispatchers.IO) {
-            mPokemonViewModel.getPokemonRes(pokemonService) //Build Pokemon PokemonInfo and PokemonTypeCrossRef Table
+            mPokemonViewModel.loadingHome.value = true
+            mPokemonViewModel.addAllPokemonFromRes(pokemonService) //Build Pokemon PokemonInfo and PokemonTypeCrossRef Table
             mPokemonViewModel.getAllPokemonTypes(pokemonService) // Build Type Table
-
+            mPokemonViewModel.loadingHome.value = false
         }
         setContent {
             PokemonAssignmentTheme() {

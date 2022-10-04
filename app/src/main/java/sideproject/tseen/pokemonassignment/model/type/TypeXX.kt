@@ -9,6 +9,5 @@ data class TypeXX(
     @PrimaryKey(autoGenerate = false)
     @SerializedName("name")
     val typeName: String,
-
     val url: String
 )

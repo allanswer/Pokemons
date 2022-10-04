@@ -1,17 +1,21 @@
 package sideproject.tseen.pokemonassignment.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.capitalize
 import androidx.compose.ui.text.style.TextAlign
@@ -25,13 +29,13 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import sideproject.tseen.pokemonassignment.model.PokemonCardDetail
 import sideproject.tseen.pokemonassignment.model.PokemonInfo
+import sideproject.tseen.pokemonassignment.ui.composable.CircularProgressBar
 import sideproject.tseen.pokemonassignment.viewmodel.PokemonViewModel
 
 @Composable
 fun PokemonDetails(navController: NavController, pokemonNAme: String, pokemonViewModel:PokemonViewModel) {
     val pokemonCardDetails = pokemonViewModel.getPokemonSpecieCardDetail(pokemonNAme).observeAsState(initial = emptyList())
     val pokemonInfos = pokemonViewModel.getPokemonInfo(pokemonNAme).observeAsState(initial = emptyList())
-
 
     if(pokemonCardDetails.value.isNotEmpty() && pokemonInfos.value.isNotEmpty()) {
         val pokemonCardDetail = remember {
@@ -40,8 +44,6 @@ fun PokemonDetails(navController: NavController, pokemonNAme: String, pokemonVie
         val pokemonInfo = remember {
             pokemonInfos.value[0]
         }
-
-
         Column(
             modifier = Modifier
                 .fillMaxSize(),
@@ -57,7 +59,7 @@ fun PokemonDetails(navController: NavController, pokemonNAme: String, pokemonVie
                     ) {
                     Icon(Icons.Rounded.ArrowBack, "")
                 }
-                Text(pokemonInfo.id.toString(),
+                Text("#" + pokemonInfo.id.toString(),
                     fontSize = 20.sp)
             }
 
@@ -73,10 +75,21 @@ fun PokemonDetails(navController: NavController, pokemonNAme: String, pokemonVie
 
             Text(pokemonInfo.pokemonName.capitalize())
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
+            //Types
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 pokemonInfo.pokemonType.map {
-                    Text(it, textAlign = TextAlign.Center)}
+                    Column(
+                        modifier = Modifier
+                            .background(
+                                color = Color.LightGray,
+                                shape = RoundedCornerShape(30.dp)
+                            )
+                            .padding(8.dp, 4.dp)) {
+                        Text(text = it)
+                    }
+                }
             }
 
             //Pass the evolveFrom Pokemon name to get the corresponding information.
@@ -105,7 +118,7 @@ fun pokemonEvolveFromSection(navController: NavController, fromPokemonInfo: Poke
         verticalAlignment = Alignment.CenterVertically) {
 
         Column() {
-            Text("Evolves from", fontSize = 8.sp)
+            Text("Evolves from", fontSize = 8.sp, color = Color.Gray)
             Spacer(modifier = Modifier.size(2.dp))
             Text(pokemonCardDetail.evolveFrom!!.capitalize(), fontSize = 12.sp)
         }

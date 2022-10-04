@@ -2,6 +2,7 @@ package sideproject.tseen.pokemonassignment.viewmodel
 
 import android.app.Application
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.viewModelScope
@@ -35,8 +36,8 @@ class PokemonViewModel(application: Application): AndroidViewModel(application){
     private val pokemonRepository: PokemonRepository
     private val typeRepository: TypeRepository
     private val pokemonInfoRepository: PokemonInfoRepository
-
-
+    val loadingHome = mutableStateOf(false)
+    val progress = mutableStateOf(0f)
 
     init {
         val pokemonDao = PokemonDatabase.getDatabase(application).pokemonDao()
@@ -69,6 +70,10 @@ class PokemonViewModel(application: Application): AndroidViewModel(application){
         pokemonInfoRepository.insertPokemonTypeCrossRef(pokemonTypeCrossRef)
     }
 
+    fun getAllPokemon(): LiveData<List<Pokemon>>{
+        return pokemonRepository.readAllData
+    }
+
     fun getAllTypes(): LiveData<List<TypeXX>>{
         return readAllType
     }
@@ -82,10 +87,6 @@ class PokemonViewModel(application: Application): AndroidViewModel(application){
         return pokemonInfoRepository.getPokemonInfo(pokemonName)
     }
 
-    fun getPokemonsOrderByType(): LiveData<List<PokemonInfo>>{
-        return pokemonInfoRepository.readAllSortedData
-    }
-
     fun getPokemonSpecieCardDetail(pokemonName: String): LiveData<List<PokemonCardDetail>>{
         return pokemonSpecieDetailRepository.getPokemonCardDetail(pokemonName)
     }
@@ -93,7 +94,7 @@ class PokemonViewModel(application: Application): AndroidViewModel(application){
     //
 
     /* Send api request and build Pokemon and PokemonInfo DB */
-    suspend fun getPokemonRes(pokemonService: PokemonService) {
+    suspend fun addAllPokemonFromRes(pokemonService: PokemonService) {
         Log.d(TAG, "getPokemonRes: Start to send api request and build Pokemon, PokemonInfo and PokemonTypeCrossRef DB...")
         val response = pokemonService.getPokemons();
         if(response.isSuccessful) {
@@ -102,7 +103,9 @@ class PokemonViewModel(application: Application): AndroidViewModel(application){
                 insertPokemon(pokemon)
                 addPokeInfo(pokemonService, pokemon.name)
                 addPokemonSpecieInfo(pokemonService, pokemon.name)
+                progress.value += 0.7f / data.results.size
             }
+            progress.value = 0.7f
         }
         Log.d(TAG, "getPokemonRes: Pokemon PokemonInfo and PokemonTypeCrossRef tables are saved")
     }
@@ -139,34 +142,36 @@ class PokemonViewModel(application: Application): AndroidViewModel(application){
     }
 
     /* get types of all Pokemon */
-    fun getAllPokemonTypes(pokemonService: PokemonService) {
+    suspend fun getAllPokemonTypes(pokemonService: PokemonService) {
         Log.d(TAG, "getAllPokemonTypes: Start to get types of all Pokemon...")
-        viewModelScope.launch(Dispatchers.IO) {
-            val response = pokemonService.getAllPokemonType()
-            if(response.isSuccessful) {
-                val data: PokemonTypeResponse = response.body()!!
-                for(type in data.results) {
-                    insertType(type)
-                }
+        val response = pokemonService.getAllPokemonType()
+        if(response.isSuccessful) {
+            val data: PokemonTypeResponse = response.body()!!
+            for(type in data.results) {
+                progress
+                insertType(type)
+                progress.value += 0.3f / data.results.size
             }
         }
+        progress.value = 1f
         Log.d(TAG, "getAllPokemonTypes: Types(TypeXX) table saved")
     }
 
-    fun addPokemonSpecieInfo(pokemonService: PokemonService, name: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val response = pokemonService.getPokemonSepcieInfo(name)
-            if(response.isSuccessful) {
-                val data: PokemonSpecieResponse = response.body()!!
+    /* Add specie information like evolution information into DB*/
+    private suspend fun addPokemonSpecieInfo(pokemonService: PokemonService, name: String) {
+        val response = pokemonService.getPokemonSepcieInfo(name)
+        if(response.isSuccessful) {
+            val data: PokemonSpecieResponse = response.body()!!
 
-                val newPokemonCardDetail = PokemonCardDetail(
-                    pokemonName = data.name,
-                    evolveFrom = data.evolves_from_species?.name,
-                    desc = data.flavor_text_entries.firstOrNull{it.language.name == Constants.LANGUAGE}?.flavor_text.toString()
-                )
-                pokemonSpecieDetailRepository.addPokemonCardDetails(newPokemonCardDetail)
-            }
+            val newPokemonCardDetail = PokemonCardDetail(
+                pokemonName = data.name,
+                evolveFrom = data.evolves_from_species?.name,
+                desc = data.flavor_text_entries.firstOrNull{it.language.name == Constants.LANGUAGE}?.flavor_text.toString()
+            )
+            pokemonSpecieDetailRepository.addPokemonCardDetails(newPokemonCardDetail)
         }
     }
+
+
 
 }
